@@ -1,20 +1,21 @@
 import pandas as pd
+import logging
 
-def engineer_features(df):
+def engineer_features(df, config):
     """
     Engineers new features from the existing data.
     """
-    print("Engineering new features...")
+    logging.info("Engineering new features...")
     
     # Lagged Features
-    lag_features = ['SMA_200', 'SMA_50', 'Bollinger_Upper', 'Bollinger_Lower', 'VIXCLS']
-    lag_periods = [1, 2, 3, 5, 10]
+    lag_features = config["lag_features"]
+    lag_periods = config["lag_periods"]
     for feature in lag_features:
         for period in lag_periods:
             df[f'{feature}_lag_{period}'] = df[feature].shift(period)
             
     # Rolling Statistics
-    rolling_periods = [5, 10]
+    rolling_periods = config["rolling_periods"]
     for period in rolling_periods:
         df[f'Close_rolling_std_{period}'] = df['Close'].rolling(window=period).std()
         
@@ -25,6 +26,6 @@ def engineer_features(df):
     # Drop NaNs created by lagging and rolling stats
     df.dropna(inplace=True)
     
-    print(f"Shape after feature engineering: {df.shape}")
+    logging.info(f"Shape after feature engineering: {df.shape}")
     
     return df

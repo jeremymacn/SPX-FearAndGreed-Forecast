@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
+import logging
 
 def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='rolling', target_column='Target_21d', training_window=3, testing_window=1, step=1, transaction_cost=0.001, initial_capital=10000):
     """
@@ -11,7 +12,7 @@ def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='
     all_equity = [initial_capital]
     trade_log = []
 
-    print(f"\n--- Running {window_type.capitalize()} Window Backtest with Tuned Model ---")
+    logging.info(f"--- Running {window_type.capitalize()} Window Backtest ---")
 
     for i in range(0, len(years) - training_window - testing_window + 1, step):
         train_start_year = years[i]
@@ -32,7 +33,7 @@ def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='
         if len(train_df) == 0 or len(test_df) == 0:
             continue
 
-        print(f"\n--- Training on data up to {train_end_year}, Testing on {test_start_year}-{test_end_year} ---")
+        logging.info(f"--- Training on data up to {train_end_year}, Testing on {test_start_year}-{test_end_year} ---")
 
         # Prepare data
         X_train = train_df.drop(columns=[col for col in df.columns if 'Target' in col])
@@ -78,22 +79,22 @@ def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='
         drawdown = (equity_series/peak) - 1
         max_drawdown = drawdown.min()
 
-        print("\n--- Backtest Performance ---")
-        print(f"Total Return: {total_return:.2%}")
-        print(f"Buy & Hold Return: {buy_and_hold_return:.2%}")
-        print(f"Sharpe Ratio: {sharpe_ratio:.2f}")
-        print(f"Maximum Drawdown: {max_drawdown:.2%}")
+        logging.info("--- Backtest Performance ---")
+        logging.info(f"Total Return: {total_return:.2%}")
+        logging.info(f"Buy & Hold Return: {buy_and_hold_return:.2%}")
+        logging.info(f"Sharpe Ratio: {sharpe_ratio:.2f}")
+        logging.info(f"Maximum Drawdown: {max_drawdown:.2%}")
 
         # Plot equity curve
         plt.figure(figsize=(12, 8))
         equity_series.plot()
-        plt.title(f'Equity Curve - {window_type.capitalize()} Window - Tuned Model')
+        plt.title(f'Equity Curve - {window_type.capitalize()} Window')
         plt.xlabel('Trade Number')
         plt.ylabel('Equity')
         plt.grid(True)
-        plt.savefig(f'equity_curve_{window_type}_tuned.png')
+        plt.savefig(f'equity_curve_{window_type}.png')
         plt.close()
-        print(f"\nEquity curve plot saved to equity_curve_{window_type}_tuned.png")
+        logging.info(f"Equity curve plot saved to equity_curve_{window_type}.png")
 
     else:
-        print("\nNo trades were made during the backtest.")
+        logging.info("No trades were made during the backtest.")

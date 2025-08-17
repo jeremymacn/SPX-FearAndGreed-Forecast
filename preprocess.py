@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 
 def create_target_labels(df, periods):
     """
@@ -8,20 +9,15 @@ def create_target_labels(df, periods):
         df[f'Target_{period}d'] = (df['Close'].shift(-period) > df['Close']).astype(int)
     return df
 
-def preprocess_data(df):
+def preprocess_data(df, config):
     """
     Performs preprocessing on the data.
     """
     # Select features
-    features = [
-        'Open', 'High', 'Low', 'Close', 'Volume',
-        'SMA_50', 'SMA_200', 'RSI', 'MACD', 'MACD_Signal',
-        'Bollinger_Upper', 'Bollinger_Lower', 'VIXCLS', 'DGS10',
-        'value' # Fear & Greed Index value
-    ]
+    features = config["features"]
     df = df[features].copy()
 
-    print(f"Shape after feature selection: {df.shape}")
+    logging.info(f"Shape after feature selection: {df.shape}")
 
     # Handle missing values
     df.ffill(inplace=True)
@@ -34,16 +30,16 @@ def preprocess_data(df):
     dropped_rows = initial_rows - final_rows
     if initial_rows > 0:
         dropped_percentage = (dropped_rows / initial_rows) * 100
-        print(f"Dropped {dropped_rows} rows ({dropped_percentage:.2f}%) due to missing values.")
+        logging.info(f"Dropped {dropped_rows} rows ({dropped_percentage:.2f}%) due to missing values.")
         if dropped_percentage > 90:
-            print("WARNING: More than 90% of rows were dropped. You should investigate the data sources.")
+            logging.warning("More than 90% of rows were dropped. You should investigate the data sources.")
 
-    print(f"Shape after handling missing values: {df.shape}")
+    logging.info(f"Shape after handling missing values: {df.shape}")
 
     # Create the target variables
-    periods = [1, 5, 10, 21] # 1 day, 1 week, 2 weeks, 1 month
+    periods = config["target_periods"]
     df = create_target_labels(df, periods)
     df.dropna(inplace=True)
-    print(f"Shape after creating targets: {df.shape}")
+    logging.info(f"Shape after creating targets: {df.shape}")
 
     return df

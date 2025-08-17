@@ -1,0 +1,9 @@
+pandas==2.2.2
+requests==2.31.0
+pandas-datareader==0.10.0
+yfinance==0.2.54
+matplotlib==3.8.4
+seaborn==0.13.2
+scikit-learn==1.4.2
+playwright==1.54.0
+setuptools==69.5.1
