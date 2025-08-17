@@ -3,6 +3,7 @@ from sp500_indicators import gather_all_data
 from preprocess import preprocess_data
 from feature_engineering import engineer_features
 from walk_forward_backtest import run_walk_forward_backtest
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import config
 
 # --- Setup Logging ---
@@ -30,9 +31,20 @@ def main():
     logging.info("Feature engineering complete.")
 
     # Step 4: Walk-Forward Backtest
-    logging.info("Running Walk-Forward Backtest...")
-    run_walk_forward_backtest(engineered_df, **config.BACKTEST_CONFIG)
-    logging.info("Walk-forward backtest complete.")
+    models_to_run = {
+        "RandomForestClassifier": RandomForestClassifier,
+        "GradientBoostingClassifier": GradientBoostingClassifier
+    }
+
+    for model_name, model_class in models_to_run.items():
+        logging.info(f"--- Running backtest for {model_name} ---")
+
+        backtest_config = config.BACKTEST_CONFIG.copy()
+        backtest_config["model_class"] = model_class
+        backtest_config["model_params"] = config.BACKTEST_CONFIG["model_params"][model_name]
+
+        run_walk_forward_backtest(engineered_df.copy(), **backtest_config)
+        logging.info(f"--- Backtest for {model_name} complete ---")
 
 
 if __name__ == '__main__':

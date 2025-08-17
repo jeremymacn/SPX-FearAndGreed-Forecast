@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import logging
 
-def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='rolling', target_column='Target_21d', training_window=3, testing_window=1, step=1, transaction_cost=0.001, initial_capital=10000):
+def run_walk_forward_backtest(df, model_class, model_params, holding_period=21, window_type='rolling', target_column='Target_21d', training_window=3, testing_window=1, step=1, transaction_cost=0.001, initial_capital=10000):
     """
     Performs a walk-forward backtest of the trading strategy with rolling or expanding windows.
     """
@@ -12,7 +12,8 @@ def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='
     all_equity = [initial_capital]
     trade_log = []
 
-    logging.info(f"--- Running {window_type.capitalize()} Window Backtest ---")
+    model_name = model_class.__name__
+    logging.info(f"--- Running {window_type.capitalize()} Window Backtest with {model_name} ---")
 
     for i in range(0, len(years) - training_window - testing_window + 1, step):
         train_start_year = years[i]
@@ -41,7 +42,7 @@ def run_walk_forward_backtest(df, model_params, holding_period=21, window_type='
         X_test = test_df.drop(columns=[col for col in df.columns if 'Target' in col])
 
         # Train model
-        model = RandomForestClassifier(**model_params, random_state=42)
+        model = model_class(**model_params, random_state=42)
         model.fit(X_train, y_train)
         predictions = model.predict(X_test)
 

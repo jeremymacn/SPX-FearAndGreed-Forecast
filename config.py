@@ -9,7 +9,17 @@ DATA_CONFIG = {
 FEATURE_ENGINEERING_CONFIG = {
     "lag_features": ['SMA_200', 'SMA_50', 'Bollinger_Upper', 'Bollinger_Lower', 'VIXCLS'],
     "lag_periods": [1, 2, 3, 5, 10],
-    "rolling_periods": [5, 10]
+    "rolling_periods": [5, 10],
+    "normalization_strategies": {
+        "log": ["M1SL", "M2SL"],
+        "min_max": [
+            "new_high_1y", "new_low_1y", "new_high_6m", "new_low_6m",
+            "new_high_3m", "new_low_3m", "new_high_1m", "new_low_1m",
+            "new_high_2w", "new_low_2w", "new_high_1w", "new_low_1w"
+        ],
+        "z_score": ["FEDFUNDS", "VIXCLS", "VVIX", "DGS10"]
+    },
+    "feature_selection_k": 20
 }
 
 # Preprocessing
@@ -26,7 +36,14 @@ PREPROCESSING_CONFIG = {
 # Backtesting
 BACKTEST_CONFIG = {
     "model_params": {
-        "n_estimators": 100,
+        "RandomForestClassifier": {
+            "n_estimators": 100,
+        },
+        "GradientBoostingClassifier": {
+            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 3
+        }
     },
     "holding_period": 40,
     "window_type": "rolling",

@@ -3,6 +3,7 @@ import requests
 import pandas_datareader.data as web
 import yfinance as yf
 import logging
+import time
 
 def get_fear_and_greed_index():
     """
@@ -35,9 +36,38 @@ def get_sp500_data(start_date, end_date):
     """
     Retrieves S&P 500 historical data from Yahoo Finance.
     """
+    return get_yfinance_data("^GSPC", start_date, end_date)
+
+def get_yfinance_data(ticker, start_date, end_date, retries=3, backoff_factor=0.5):
+    """
+    Retrieves historical data for a given ticker from Yahoo Finance with retry logic.
+    """
+    for i in range(retries):
+        try:
+            data = yf.Ticker(ticker)
+            history = data.history(start=start_date, end=end_date)
+            if not history.empty:
+                return history
+        except Exception as e:
+            logging.warning(f"Error fetching {ticker} (attempt {i+1}/{retries}): {e}")
+            if i < retries - 1:
+                sleep_time = backoff_factor * (2 ** i)
+                logging.info(f"Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+            else:
+                logging.error(f"Failed to fetch {ticker} after {retries} attempts.")
+                return pd.DataFrame()
+    return pd.DataFrame()
+
+def get_sp500_tickers():
+    """
+    Retrieves the list of S&P 500 tickers from Wikipedia.
+    """
     try:
-        sp500 = yf.Ticker("^GSPC")
-        return sp500.history(start=start_date, end=end_date)
+        url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+        table = pd.read_html(url)
+        tickers = table[0]['Symbol'].tolist()
+        return tickers
     except Exception as e:
-        logging.error(f"Error fetching S&P 500 data: {e}")
-        return pd.DataFrame()
+        logging.error(f"Error fetching S&P 500 tickers: {e}")
+        return []
