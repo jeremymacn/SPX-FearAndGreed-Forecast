@@ -1,7 +1,7 @@
 import pandas as pd
 import datetime
 from data_sources import get_sp500_data, get_fred_data, get_fear_and_greed_index, get_yfinance_data, get_sp500_tickers
-from technical_indicators import calculate_moving_average, calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_obv
+from technical_indicators import calculate_moving_average, calculate_rsi, calculate_macd, calculate_bollinger_bands, calculate_obv, calculate_ad, calculate_adx, calculate_aroon, calculate_stochastic_oscillator
 import logging
 
 def calculate_new_high_lows(start_date, end_date, index_df):
@@ -80,6 +80,10 @@ def gather_all_data(years=10):
     main_df['MACD'], main_df['MACD_Signal'] = calculate_macd(main_df)
     main_df['Bollinger_Upper'], main_df['Bollinger_Lower'] = calculate_bollinger_bands(main_df)
     main_df['OBV'] = calculate_obv(main_df)
+    main_df['A/D'] = calculate_ad(main_df)
+    main_df['ADX'] = calculate_adx(main_df)
+    main_df['Aroon_Down'], main_df['Aroon_Up'] = calculate_aroon(main_df)
+    main_df['Stoch_SlowK'], main_df['Stoch_SlowD'] = calculate_stochastic_oscillator(main_df)
 
     # --- Add Economic Indicators ---
     economic_indicators = {

@@ -1,4 +1,31 @@
 import pandas as pd
+import talib
+
+def calculate_ad(data):
+    """
+    Calculates the Accumulation/Distribution Line (A/D).
+    """
+    return talib.AD(data['High'], data['Low'], data['Close'], data['Volume'])
+
+def calculate_adx(data, timeperiod=14):
+    """
+    Calculates the Average Directional Index (ADX).
+    """
+    return talib.ADX(data['High'], data['Low'], data['Close'], timeperiod=timeperiod)
+
+def calculate_aroon(data, timeperiod=14):
+    """
+    Calculates the Aroon Indicator.
+    """
+    aroon_down, aroon_up = talib.AROON(data['High'], data['Low'], timeperiod=timeperiod)
+    return aroon_down, aroon_up
+
+def calculate_stochastic_oscillator(data, fastk_period=14, slowk_period=3, slowd_period=3):
+    """
+    Calculates the Stochastic Oscillator.
+    """
+    slowk, slowd = talib.STOCH(data['High'], data['Low'], data['Close'], fastk_period=fastk_period, slowk_period=slowk_period, slowd_period=slowd_period)
+    return slowk, slowd
 
 def calculate_moving_average(data, window):
     """

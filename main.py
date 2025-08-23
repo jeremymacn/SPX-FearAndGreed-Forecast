@@ -4,6 +4,7 @@ from preprocess import preprocess_data
 from feature_engineering import engineer_features
 from walk_forward_backtest import run_walk_forward_backtest
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from lightgbm import LGBMClassifier
 import config
 
 # --- Setup Logging ---
@@ -33,7 +34,8 @@ def main():
     # Step 4: Walk-Forward Backtest
     models_to_run = {
         "RandomForestClassifier": RandomForestClassifier,
-        "GradientBoostingClassifier": GradientBoostingClassifier
+        "GradientBoostingClassifier": GradientBoostingClassifier,
+        "LGBMClassifier": LGBMClassifier
     }
 
     for model_name, model_class in models_to_run.items():

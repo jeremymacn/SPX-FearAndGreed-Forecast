@@ -4,6 +4,11 @@ import pandas_datareader.data as web
 import yfinance as yf
 import logging
 import time
+import os
+
+CACHE_DIR = 'cache'
+if not os.path.exists(CACHE_DIR):
+    os.makedirs(CACHE_DIR)
 
 def get_fear_and_greed_index():
     """
@@ -38,15 +43,25 @@ def get_sp500_data(start_date, end_date):
     """
     return get_yfinance_data("^GSPC", start_date, end_date)
 
-def get_yfinance_data(ticker, start_date, end_date, retries=3, backoff_factor=0.5):
+def get_yfinance_data(ticker, start_date, end_date, retries=3, backoff_factor=2):
     """
-    Retrieves historical data for a given ticker from Yahoo Finance with retry logic.
+    Retrieves historical data for a given ticker from Yahoo Finance with retry logic and caching.
     """
+    # Sanitize ticker for filename
+    safe_ticker = ticker.replace('^', '')
+    cache_file = os.path.join(CACHE_DIR, f"{safe_ticker}_{start_date.strftime('%Y-%m-%d')}_{end_date.strftime('%Y-%m-%d')}.csv")
+
+    if os.path.exists(cache_file):
+        logging.info(f"Loading {ticker} data from cache.")
+        return pd.read_csv(cache_file, index_col='Date', parse_dates=True)
+
+    logging.info(f"Fetching {ticker} data from yfinance.")
     for i in range(retries):
         try:
             data = yf.Ticker(ticker)
             history = data.history(start=start_date, end=end_date)
             if not history.empty:
+                history.to_csv(cache_file)
                 return history
         except Exception as e:
             logging.warning(f"Error fetching {ticker} (attempt {i+1}/{retries}): {e}")

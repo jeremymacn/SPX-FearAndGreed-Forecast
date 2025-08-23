@@ -3,10 +3,18 @@ import logging
 
 def create_target_labels(df, periods):
     """
-    Creates target labels for different time periods.
+    Creates target labels for different time periods with percentage change buckets.
     """
     for period in periods:
-        df[f'Target_{period}d'] = (df['Close'].shift(-period) > df['Close']).astype(int)
+        future_price = df['Close'].shift(-period)
+        price_change_pct = (future_price - df['Close']) / df['Close'] * 100
+
+        # Define the buckets
+        bins = [-float('inf'), -5, -3, -1, 1, 3, 5, float('inf')]
+        labels = [0, 1, 2, 3, 4, 5, 6] # 0: <-5%, 1: -5% to -3%, ..., 6: >5%
+
+        df[f'Target_{period}d'] = pd.cut(price_change_pct, bins=bins, labels=labels, right=False).astype(int)
+
     return df
 
 def preprocess_data(df, config):
