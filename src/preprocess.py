@@ -13,7 +13,7 @@ def create_target_labels(df, periods):
         bins = [-float('inf'), -5, -3, -1, 1, 3, 5, float('inf')]
         labels = [0, 1, 2, 3, 4, 5, 6] # 0: <-5%, 1: -5% to -3%, ..., 6: >5%
 
-        df[f'Target_{period}d'] = pd.cut(price_change_pct, bins=bins, labels=labels, right=False).astype(int)
+        df[f'Target_{period}d'] = pd.cut(price_change_pct, bins=bins, labels=labels, right=False).astype('Int64')
 
     return df
 

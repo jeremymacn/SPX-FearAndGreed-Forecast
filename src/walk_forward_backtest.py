@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 import logging
 
-def run_walk_forward_backtest(df, model_class, model_params, holding_period=21, window_type='rolling', target_column='Target_21d', training_window=3, testing_window=1, step=1, transaction_cost=0.001, initial_capital=10000, strategy='long_only', parking_threshold=2):
+def run_walk_forward_backtest(df, model_class, model_params, holding_period=21, window_type='rolling', target_column='Target_21d', training_window=3, testing_window=1, step=1, transaction_cost=0.001, initial_capital=10000, strategy='long_only', parking_threshold=2, output_dir='reports/images'):
     """
     Performs a walk-forward backtest of the trading strategy with rolling or expanding windows.
     """
@@ -12,15 +12,19 @@ def run_walk_forward_backtest(df, model_class, model_params, holding_period=21, 
     all_equity = [initial_capital]
     trade_log = []
 
-    model_name = model_class.__name__
-    logging.info(f"--- Running {window_type.capitalize()} Window Backtest with {model_name} ---")
-
-    if strategy == 'long_only':
-        all_equity, trade_log = run_long_only_backtest(df, model_class, model_params, holding_period, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital)
-    elif strategy == 'buy_and_hold_parking':
-        all_equity, trade_log = run_buy_and_hold_parking_backtest(df, model_class, model_params, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital, parking_threshold)
+    if strategy == 'buy_and_hold':
+        model_name = "BuyAndHold"
+        logging.info(f"--- Running Backtest for {model_name} ---")
+        all_equity, trade_log = run_buy_and_hold_backtest(df, initial_capital)
     else:
-        raise ValueError("Strategy not supported. Choose 'long_only' or 'buy_and_hold_parking'.")
+        model_name = model_class.__name__
+        logging.info(f"--- Running {window_type.capitalize()} Window Backtest with {model_name} and {strategy} strategy ---")
+        if strategy == 'trend_following':
+            all_equity, trade_log = run_trend_following_backtest(df, model_class, model_params, holding_period, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital)
+        elif strategy == 'buy_and_hold_parking':
+            all_equity, trade_log = run_buy_and_hold_parking_backtest(df, model_class, model_params, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital, parking_threshold)
+        else:
+            raise ValueError(f"Strategy '{strategy}' not supported for model-based backtesting.")
 
     # Final performance metrics
     if len(all_equity) > 1:
@@ -45,21 +49,35 @@ def run_walk_forward_backtest(df, model_class, model_params, holding_period=21, 
         # Plot equity curve
         plt.figure(figsize=(12, 8))
         equity_series.plot()
-        plt.title(f'Equity Curve - {window_type.capitalize()} Window')
+        plt.title(f'Equity Curve - {model_name} - {window_type.capitalize()} Window')
         plt.xlabel('Trade Number')
         plt.ylabel('Equity')
         plt.grid(True)
-        plt.savefig(f'equity_curve_{window_type}.png')
+        output_path = f"{output_dir}/equity_curve_{model_name}_{window_type}.png"
+        plt.savefig(output_path)
         plt.close()
-        logging.info(f"Equity curve plot saved to equity_curve_{window_type}.png")
+        logging.info(f"Equity curve plot saved to {output_path}")
 
+        return {
+            "Total Return": total_return,
+            "Buy & Hold Return": buy_and_hold_return,
+            "Sharpe Ratio": sharpe_ratio,
+            "Max Drawdown": max_drawdown
+        }
     else:
         logging.info("No trades were made during the backtest.")
+        return {
+            "Total Return": 0,
+            "Buy & Hold Return": 0,
+            "Sharpe Ratio": 0,
+            "Max Drawdown": 0
+        }
 
-def run_long_only_backtest(df, model_class, model_params, holding_period, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital):
+def run_trend_following_backtest(df, model_class, model_params, holding_period, window_type, target_column, training_window, testing_window, step, transaction_cost, initial_capital):
     years = sorted(df.index.year.unique())
     all_equity = [initial_capital]
     trade_log = []
+    in_trade = False
 
     for i in range(0, len(years) - training_window - testing_window + 1, step):
         train_start_year = years[i]
@@ -85,24 +103,27 @@ def run_long_only_backtest(df, model_class, model_params, holding_period, window
         model.fit(X_train, y_train)
         predictions = model.predict(X_test)
 
-        in_trade = False
-        trade_entry_price = 0
-        trade_entry_index = 0
-
         for j in range(len(test_df)):
-            if not in_trade and predictions[j] == 1:
+            current_price = test_df['Close'].iloc[j]
+            if j > 0:
+                prev_price = test_df['Close'].iloc[j-1]
+                daily_return = (current_price / prev_price) - 1
+                if in_trade:
+                    all_equity.append(all_equity[-1] * (1 + daily_return))
+                else:
+                    all_equity.append(all_equity[-1])
+
+            # Buy signal
+            if not in_trade and predictions[j] >= 4:
                 in_trade = True
-                trade_entry_price = test_df['Close'].iloc[j]
-                trade_entry_index = j
-                trade_log.append(f"{test_df.index[j].date()}: Enter trade at {trade_entry_price:.2f}")
-            
-            if in_trade and (j - trade_entry_index) >= holding_period:
+                all_equity[-1] *= (1 - transaction_cost)
+                trade_log.append(f"{test_df.index[j].date()}: Buy at {current_price:.2f}")
+
+            # Sell signal
+            elif in_trade and predictions[j] <= 2:
                 in_trade = False
-                exit_price = test_df['Close'].iloc[j]
-                trade_return = (exit_price / trade_entry_price) - 1
-                trade_return -= transaction_cost
-                all_equity.append(all_equity[-1] * (1 + trade_return))
-                trade_log.append(f"{test_df.index[j].date()}: Exit trade at {exit_price:.2f}, Return: {trade_return:.2%}")
+                all_equity[-1] *= (1 - transaction_cost)
+                trade_log.append(f"{test_df.index[j].date()}: Sell at {current_price:.2f}")
 
     return all_equity, trade_log
 
@@ -158,5 +179,23 @@ def run_buy_and_hold_parking_backtest(df, model_class, model_params, window_type
                 # Buy signal, apply transaction cost
                 all_equity[-1] *= (1 - transaction_cost)
                 trade_log.append(f"{test_df.index[j].date()}: Re-entered at {current_price:.2f}")
+
+    return all_equity, trade_log
+
+def run_buy_and_hold_backtest(df, initial_capital):
+    """
+    Runs a simple buy-and-hold backtest.
+    """
+    trade_log = [f"{df.index[0].date()}: Buy and Hold at {df['Close'].iloc[0]:.2f}"]
+
+    # Calculate daily returns
+    daily_returns = df['Close'].pct_change()
+
+    # Calculate equity curve
+    all_equity = [initial_capital]
+    for daily_return in daily_returns[1:]: # first return is NaN
+        all_equity.append(all_equity[-1] * (1 + daily_return))
+
+    trade_log.append(f"{df.index[-1].date()}: Final equity {all_equity[-1]:.2f}")
 
     return all_equity, trade_log

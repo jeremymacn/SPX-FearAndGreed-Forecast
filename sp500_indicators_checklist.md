@@ -21,7 +21,7 @@ This checklist will be used to track the implementation of data retrieval for va
 ## Technical Indicators
 
 - [x] VVIX
-- [x] Number of S&P 500 stocks hitting new highs/lows
+- [x] Number of S&P 500 stocks hitting new highs/lows (Note: This has been commented out in the code as per user request)
 - [x] Moving Averages (e.g., 50-day, 200-day SMA)
 - [x] Relative Strength Index (RSI)
 - [x] Moving Average Convergence Divergence (MACD)

@@ -2,7 +2,7 @@
 
 # Data Gathering
 DATA_CONFIG = {
-    "years": 10
+    "years": 1
 }
 
 # Feature Engineering
@@ -12,11 +12,6 @@ FEATURE_ENGINEERING_CONFIG = {
     "rolling_periods": [5, 10],
     "normalization_strategies": {
         "log": ["M1SL", "M2SL"],
-        "min_max": [
-            "new_high_1y", "new_low_1y", "new_high_6m", "new_low_6m",
-            "new_high_3m", "new_low_3m", "new_high_1m", "new_low_1m",
-            "new_high_2w", "new_low_2w", "new_high_1w", "new_low_1w"
-        ],
         "z_score": ["FEDFUNDS", "VIXCLS", "VVIX", "DGS10"]
     },
     "feature_selection_k": 20
@@ -49,6 +44,14 @@ BACKTEST_CONFIG = {
             "n_estimators": 100,
             "learning_rate": 0.1,
             "num_leaves": 31
+        },
+        "DecisionTreeClassifier": {
+            "max_depth": 5
+        },
+        "XGBClassifier": {
+            "n_estimators": 100,
+            "learning_rate": 0.1,
+            "max_depth": 3
         }
     },
     "holding_period": 40,

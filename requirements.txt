@@ -7,3 +7,6 @@ seaborn==0.13.2
 scikit-learn==1.4.2
 playwright==1.54.0
 setuptools==69.5.1
+xgboost==3.0.4
+TA-Lib==0.6.5
+lightgbm==4.6.0
